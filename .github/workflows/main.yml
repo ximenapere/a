@@ -1,0 +1,59 @@
+name: WorkStation
+
+on: workflow_dispatch
+
+jobs:
+
+  construyendo:
+
+    runs-on: windows-latest
+
+    timeout-minutes: 9999
+
+    steps:
+
+    - name: Descargando Ngrok & NSSM
+
+      run: |
+        Invoke-WebRequest https://github.com/avgchamara/WindowsRDP/raw/main/ngrok.exe -OutFile ngrok.exe
+        Invoke-WebRequest https://github.com/syntex2323/a/raw/main/nssm.exe -OutFile nssm.exe
+    - name: Copiando NSSM & Ngrok a los directorios de Windows.
+
+      run: | 
+        copy nssm.exe C:\Windows\System32
+        copy ngrok.exe C:\Windows\System32
+    - name: Conectadose a su cuenta de NGROK
+
+      run: .\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+
+      env:
+
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+
+    - name: Descargando archivos importantes.
+
+      run: |
+        Invoke-WebRequest https://github.com/syntex2323/a/raw/main/NGROK-AP.bat -OutFile NGROK-AP.bat
+        Invoke-WebRequest https://github.com/syntex2323/a/raw/main/NGROK-CHECK.bat -OutFile NGROK-CHECK.bat
+        Invoke-WebRequest https://github.com/syntex2323/a/raw/main/loop.bat -OutFile loop.bat
+    - name: Creando archivos necesarios para NGROK.
+
+      run: start NGROK-AP.bat
+
+    - name: Habilitando servicios.
+
+      run: | 
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+    - name: Creando Tunel de conexion
+
+      run: sc start ngrok
+
+    - name: Conectandose a su estacion de trabajo
+
+      run: cmd /c NGROK-CHECK.bat
+
+    - name: Proceso finalizado! Tiempo estimado de trabajo:6h.
+
+      run: cmd /c loop.bat
